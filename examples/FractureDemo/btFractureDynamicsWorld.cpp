@@ -7,7 +7,7 @@
 
 btFractureDynamicsWorld::btFractureDynamicsWorld(btDispatcher* dispatcher, btBroadphaseInterface* pairCache, btConstraintSolver* constraintSolver, btCollisionConfiguration* collisionConfiguration)
 	: btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration),
-	  m_fracturingMode(true)
+	  m_fracturingMode(false/*true*/)
 {
 }
 

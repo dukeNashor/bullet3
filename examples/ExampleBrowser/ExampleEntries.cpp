@@ -74,6 +74,8 @@
 #include "../RoboticsLearning/GripperGraspExample.h"
 #include "../InverseKinematics/InverseKinematicsExample.h"
 
+#include "../Custom/ConcaveMeshCollision.h"
+
 #ifdef B3_ENABLE_TINY_AUDIO
 #include "../TinyAudio/TinyAudioExample.h"
 #endif  //B3_ENABLE_TINY_AUDIO
@@ -124,7 +126,11 @@ struct ExampleEntry
 };
 
 static ExampleEntry gDefaultExamples[] =
-	{
+{
+		ExampleEntry(0, "Custom"),
+
+		ExampleEntry(1, "Concave Mesh Collision", "Two concave meshes collide with each other.", ConcaveMeshCollisionCreateFunc),
+
 		ExampleEntry(0, "API"),
 
 		ExampleEntry(1, "Basic Example", "Create some rigid bodies using box collision shapes. This is a good example to familiarize with the basic initialization of Bullet. The Basic Example can also be compiled without graphical user interface, as a console application. Press W for wireframe, A to show AABBs, I to suspend/restart physics simulation. Press D to toggle auto-deactivation of the simulation. ", BasicExampleCreateFunc),

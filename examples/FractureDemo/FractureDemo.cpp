@@ -42,6 +42,12 @@ int sFrameNumber = 0;
 
 #include "../CommonInterfaces/CommonRigidBodyBase.h"
 
+
+#include <vector>
+#include "../Importers/ImportObjDemo/LoadMeshFromObj.h"
+#include "../Utils/b3BulletDefaultFileIO.h"
+
+
 ///FractureDemo shows basic breaking and glueing of objects
 class FractureDemo : public CommonRigidBodyBase
 {
@@ -56,6 +62,11 @@ public:
 	void initPhysics();
 
 	void exitPhysics();
+
+	// helpers
+	btCompoundShape* LoadHACDOBJ(const char* objFileName);
+
+
 
 	virtual void stepSimulation(float deltaTime)
 	{
@@ -116,7 +127,7 @@ void FractureDemo::initPhysics()
 
 	{
 		///create a few basic rigid bodies
-		btCollisionShape* groundShape = new btBoxShape(btVector3(50, 1, 50));
+		btCollisionShape* groundShape = new btBoxShape(btVector3(500, 1, 500));
 		///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
 		m_collisionShapes.push_back(groundShape);
 		btTransform groundTransform;
@@ -125,53 +136,99 @@ void FractureDemo::initPhysics()
 		createRigidBody(0.f, groundTransform, groundShape);
 	}
 
+	//{
+	//	///create a few basic rigid bodies
+	//	btCollisionShape* shape = new btBoxShape(btVector3(1, 1, 1));
+	//	m_collisionShapes.push_back(shape);
+	//	btTransform tr;
+	//	tr.setIdentity();
+	//	tr.setOrigin(btVector3(5, 2, 0));
+	//	createRigidBody(0.f, tr, shape);
+	//}
+
+	// add tooth #1
 	{
-		///create a few basic rigid bodies
-		btCollisionShape* shape = new btBoxShape(btVector3(1, 1, 1));
-		m_collisionShapes.push_back(shape);
-		btTransform tr;
-		tr.setIdentity();
-		tr.setOrigin(btVector3(5, 2, 0));
-		createRigidBody(0.f, tr, shape);
+		const char* compoundFileName = "D:/dev/bullet3_build/examples/HelloWorld/Release/tooth_acd.obj";
+		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
+
+		m_collisionShapes.push_back(compoundShape);
+		btTransform compoundTransform;
+		compoundTransform.setIdentity();
+		compoundTransform.setOrigin(btVector3(-5, 0, 0));
+		btScalar angle = 3.14159 / 2;
+		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+		btRigidBody* tooth = createRigidBody(static_cast<btScalar>(compoundShape->getNumChildShapes() * 10), compoundTransform, compoundShape);
 	}
 
+	// add tooth #2
 	{
-		//create a few dynamic rigidbodies
-		// Re-using the same collision is better for memory usage and performance
+		const char* compoundFileName = "D:/dev/bullet3_build/examples/HelloWorld/Release/tooth_acd.obj";
+		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
 
-		btCollisionShape* colShape = new btBoxShape(btVector3(SCALING * 1, SCALING * 1, SCALING * 1));
-		//btCollisionShape* colShape = new btCapsuleShape(SCALING*0.4,SCALING*1);
-		//btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-		m_collisionShapes.push_back(colShape);
+		m_collisionShapes.push_back(compoundShape);
+		btTransform compoundTransform;
+		compoundTransform.setIdentity();
+		compoundTransform.setOrigin(btVector3(10, 0, 0));
+		btScalar angle = 3.14159 / 2;
+		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+		btRigidBody* tooth = createRigidBody(0.f, compoundTransform, compoundShape);
 
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
 
-		btScalar mass(1.f);
+		//btTransform trans;
+		//trans.setIdentity();
+		//trans.setOrigin(btVector3{0.0, 0.0, 0.0});
 
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
+		//btScalar mass = static_cast<btScalar>(compoundShape->getNumChildShapes());
+		//btVector3 localInertia{};
+		//compoundShape->calculateLocalInertia(mass, localInertia);
+		////using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+		//btDefaultMotionState* myMotionState = new btDefaultMotionState(trans);
+		//btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, compoundShape, localInertia);
+		//btFractureBody* body = new btFractureBody(rbInfo, m_dynamicsWorld);
+		//body->setLinearVelocity(btVector3(0, -5, 0));
 
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
+		//m_dynamicsWorld->addRigidBody(tooth);
+	}
 
-		int gNumObjects = 10;
+
+	{
+		int gNumObjects = 0;
+
 
 		for (int i = 0; i < gNumObjects; i++)
 		{
+			//create a few dynamic rigidbodies
+
+			btCollisionShape* colShape = new btBoxShape(btVector3(SCALING * 1, SCALING * (i * 0.5 + 1), SCALING * 1));
+			//btCollisionShape* colShape = new btCapsuleShape(SCALING*0.4,SCALING*1);
+			//btCollisionShape* colShape = new btSphereShape(btScalar(1.));
+			m_collisionShapes.push_back(colShape);
+
+			/// Create Dynamic Objects
+			btTransform startTransform;
+			startTransform.setIdentity();
+
+			btScalar mass(1.f);
+
+			//rigidbody is dynamic if and only if mass is non zero, otherwise static
+			bool isDynamic = (mass != 0.f);
+
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic)
+				colShape->calculateLocalInertia(mass, localInertia);
+
+
 			btTransform trans;
 			trans.setIdentity();
 
 			btVector3 pos(i * 2 * CUBE_HALF_EXTENTS, 20, 0);
 			trans.setOrigin(pos);
-
+			
 			//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
 			btDefaultMotionState* myMotionState = new btDefaultMotionState(trans);
 			btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
 			btFractureBody* body = new btFractureBody(rbInfo, m_dynamicsWorld);
-			body->setLinearVelocity(btVector3(0, -10, 0));
+			body->setLinearVelocity(btVector3(0, -5, 0));
 
 			m_dynamicsWorld->addRigidBody(body);
 		}
@@ -182,6 +239,10 @@ void FractureDemo::initPhysics()
 
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
 }
+
+
+
+
 
 #if 0
 void FractureDemo::showMessage()
@@ -363,6 +424,47 @@ void FractureDemo::exitPhysics()
 
 	delete m_collisionConfiguration;
 	m_collisionConfiguration = 0;
+}
+
+btCompoundShape* FractureDemo::LoadHACDOBJ(const char* objFileName)
+{
+	// use tinyobj to load fractures;
+	b3BulletDefaultFileIO fileIO;
+	std::vector<tinyobj::shape_t> shapes;
+	tinyobj::attrib_t attribute;
+	{
+		B3_PROFILE("tinyobj::LoadObj2");
+		std::string err = LoadFromCachedOrFromObj(attribute, shapes, objFileName, "", &fileIO);
+	}
+
+	btCompoundShape* ret = new btCompoundShape{};
+
+	// for each shape
+	for (const auto& shape : shapes)
+	{
+		// create btCollisionShapes from fractures;
+		btConvexHullShape* convHullShape = new btConvexHullShape();
+		btScalar scaling(1);
+		convHullShape->setLocalScaling(btVector3{ scaling, scaling, scaling });
+
+		// add points;
+		for (const auto idx : shape.mesh.indices)
+		{
+			btVector3 v{ attribute.vertices[idx.vertex_index * 3],
+						 attribute.vertices[idx.vertex_index * 3 + 1],
+						 attribute.vertices[idx.vertex_index * 3 + 2] };
+
+			convHullShape->addPoint(v);
+		}
+
+		convHullShape->initializePolyhedralFeatures();
+		float mass = 1.f;
+		btVector3 localInertia{ 0.0, 0.0, 0.0 };
+		convHullShape->calculateLocalInertia(mass, localInertia);
+		ret->addChildShape(btTransform::getIdentity(), convHullShape);
+	}
+
+	return ret;
 }
 
 class CommonExampleInterface* FractureDemoCreateFunc(struct CommonExampleOptions& options)
