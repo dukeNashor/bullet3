@@ -120,6 +120,9 @@ void FractureDemo::initPhysics()
 
 	btFractureDynamicsWorld* fractureWorld = new btFractureDynamicsWorld(m_dispatcher, m_broadphase, m_solver, m_collisionConfiguration);
 	m_dynamicsWorld = fractureWorld;
+
+	m_dynamicsWorld->setGravity(btVector3{ 2.0, -1.0, 0.0 });
+
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
 	//m_splitImpulse removes the penetration resolution from the applied impulse, otherwise objects might fracture due to deep penetrations.
@@ -127,24 +130,40 @@ void FractureDemo::initPhysics()
 
 	{
 		///create a few basic rigid bodies
-		btCollisionShape* groundShape = new btBoxShape(btVector3(500, 1, 500));
-		///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
+		//btCollisionShape* groundShape = new btBoxShape(btVector3(500, 1, 500));
+		btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
 		m_collisionShapes.push_back(groundShape);
 		btTransform groundTransform;
 		groundTransform.setIdentity();
 		groundTransform.setOrigin(btVector3(0, 0, 0));
 		createRigidBody(0.f, groundTransform, groundShape);
 	}
+	{
+		///create a few basic rigid bodies
+		//btCollisionShape* groundShape = new btBoxShape(btVector3(500, 1, 500));
+		btCollisionShape* groundShape = new btSphereShape(5.0);
+		
+		m_collisionShapes.push_back(groundShape);
+		btTransform groundTransform;
+		groundTransform.setIdentity();
+		groundTransform.setOrigin(btVector3(0, 10, 30));
+		groundTransform.setRotation(btQuaternion{ { 1.0, 0.0, 0.0 }, 3.14159 / 2 });
+		//createRigidBody(0.f, groundTransform, groundShape);
+		//rigidbody is dynamic if and only if mass is non zero, otherwise static
 
-	//{
-	//	///create a few basic rigid bodies
-	//	btCollisionShape* shape = new btBoxShape(btVector3(1, 1, 1));
-	//	m_collisionShapes.push_back(shape);
-	//	btTransform tr;
-	//	tr.setIdentity();
-	//	tr.setOrigin(btVector3(5, 2, 0));
-	//	createRigidBody(0.f, tr, shape);
-	//}
+		btVector3 localInertia(0, 0, 0);
+		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
+		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+
+		btRigidBody::btRigidBodyConstructionInfo cInfo(0.0f, myMotionState, groundShape, localInertia);
+
+		btRigidBody* body = new btRigidBody(cInfo);
+		//body->setContactProcessingThreshold(m_defaultContactProcessingThreshold);
+
+		body->setUserIndex(-1);
+		m_dynamicsWorld->addRigidBody(body);
+
+	}
 
 	// add tooth #1
 	{
@@ -157,7 +176,7 @@ void FractureDemo::initPhysics()
 		compoundTransform.setOrigin(btVector3(-5, 0, 0));
 		btScalar angle = 3.14159 / 2;
 		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
-		btRigidBody* tooth = createRigidBody(static_cast<btScalar>(compoundShape->getNumChildShapes() * 10), compoundTransform, compoundShape);
+		btRigidBody* tooth = createRigidBody(static_cast<btScalar>(compoundShape->getNumChildShapes() * 20), compoundTransform, compoundShape);
 	}
 
 	// add tooth #2
@@ -168,31 +187,39 @@ void FractureDemo::initPhysics()
 		m_collisionShapes.push_back(compoundShape);
 		btTransform compoundTransform;
 		compoundTransform.setIdentity();
-		compoundTransform.setOrigin(btVector3(10, 0, 0));
+		compoundTransform.setOrigin(btVector3(10, 0.5, 0));
 		btScalar angle = 3.14159 / 2;
 		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
 		btRigidBody* tooth = createRigidBody(0.f, compoundTransform, compoundShape);
-
-
-		//btTransform trans;
-		//trans.setIdentity();
-		//trans.setOrigin(btVector3{0.0, 0.0, 0.0});
-
-		//btScalar mass = static_cast<btScalar>(compoundShape->getNumChildShapes());
-		//btVector3 localInertia{};
-		//compoundShape->calculateLocalInertia(mass, localInertia);
-		////using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		//btDefaultMotionState* myMotionState = new btDefaultMotionState(trans);
-		//btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, compoundShape, localInertia);
-		//btFractureBody* body = new btFractureBody(rbInfo, m_dynamicsWorld);
-		//body->setLinearVelocity(btVector3(0, -5, 0));
-
-		//m_dynamicsWorld->addRigidBody(tooth);
 	}
+
+	// add walls
+
+	//{
+	//	btCollisionShape* wallShape = new btBoxShape(btVector3(5, 5, 5));
+	//	///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
+	//	m_collisionShapes.push_back(wallShape);
+	//	btTransform groundTransform;
+	//	groundTransform.setIdentity();
+	//	groundTransform.setOrigin(btVector3(0, 20, -20));
+	//	//groundTransform.setRotation({ btVector3(1, 0, 0), 3.14159 / 2 });
+	//	createRigidBody(0.f, groundTransform, wallShape);
+	//}
+
+	//{
+	//	btCollisionShape* wallShape = new btBoxShape(btVector3(100, 20, 20));
+	//	///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
+	//	m_collisionShapes.push_back(wallShape);
+	//	btTransform groundTransform;
+	//	groundTransform.setIdentity();
+	//	groundTransform.setOrigin(btVector3(0, 40, 20));
+	//	//groundTransform.setRotation({ btVector3(1, 0, 0), 3.14159 / 2 });
+	//	createRigidBody(0.f, groundTransform, wallShape);
+	//}
 
 
 	{
-		int gNumObjects = 0;
+		int gNumObjects = 5;
 
 
 		for (int i = 0; i < gNumObjects; i++)
