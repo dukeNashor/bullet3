@@ -141,27 +141,28 @@ void FractureDemo::initPhysics()
 	{
 		///create a few basic rigid bodies
 		//btCollisionShape* groundShape = new btBoxShape(btVector3(500, 1, 500));
-		btCollisionShape* groundShape = new btSphereShape(5.0);
+		btCollisionShape* sphereShape = new btCylinderShape({ 5.0, 5.0, 2.0});
 		
-		m_collisionShapes.push_back(groundShape);
+		m_collisionShapes.push_back(sphereShape);
 		btTransform groundTransform;
 		groundTransform.setIdentity();
 		groundTransform.setOrigin(btVector3(0, 10, 30));
 		groundTransform.setRotation(btQuaternion{ { 1.0, 0.0, 0.0 }, 3.14159 / 2 });
-		//createRigidBody(0.f, groundTransform, groundShape);
+		//createRigidBody(0.f, groundTransform, sphereShape);
 		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-
-		btVector3 localInertia(0, 0, 0);
+		btRigidBody* sphereBody = createRigidBody(5.0f, groundTransform, sphereShape, btVector4{ 1, 1, 0, 1 });
+		//btVector3 localInertia(0, 0, 0);
 		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+		//btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
 
-		btRigidBody::btRigidBodyConstructionInfo cInfo(0.0f, myMotionState, groundShape, localInertia);
+		//btRigidBody::btRigidBodyConstructionInfo cInfo(10.0f, myMotionState, sphereShape, localInertia);
 
-		btRigidBody* body = new btRigidBody(cInfo);
+
+		//btRigidBody* body = new btRigidBody(cInfo);
 		//body->setContactProcessingThreshold(m_defaultContactProcessingThreshold);
 
-		body->setUserIndex(-1);
-		m_dynamicsWorld->addRigidBody(body);
+		//body->setUserIndex(-1);
+		//m_dynamicsWorld->addRigidBody(body);
 
 	}
 
@@ -219,7 +220,7 @@ void FractureDemo::initPhysics()
 
 
 	{
-		int gNumObjects = 5;
+		int gNumObjects = 0;
 
 
 		for (int i = 0; i < gNumObjects; i++)
