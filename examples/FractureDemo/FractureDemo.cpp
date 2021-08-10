@@ -194,8 +194,10 @@ void FractureDemo::initPhysics()
 	btGeneric6DofSpring2Constraint* constraintToothB = new btGeneric6DofSpring2Constraint(*rbToothB, btTransform::getIdentity());
 
 	//// #1 slider constraint
-	btVector3 lowerSliderLimit = btVector3(-30, 0, 0);
-	btVector3 hiSliderLimit = btVector3(10, 0, 0);
+	constexpr btScalar UNFIXED_LOW = 1.0f;
+	constexpr btScalar UNFIXED_HIGH = -1.0f;
+	btVector3 lowerSliderLimit = btVector3(-30, UNFIXED_LOW, 0);
+	btVector3 hiSliderLimit = btVector3(10, UNFIXED_HIGH, 0);
 	constraintToothB->setLinearLowerLimit(lowerSliderLimit);
 	constraintToothB->setLinearUpperLimit(hiSliderLimit);
 	//constraintToothB->setAngularLowerLimit(btVector3(-SIMD_PI, 0, 0));
@@ -208,7 +210,7 @@ void FractureDemo::initPhysics()
 
 
 	m_dynamicsWorld->addConstraint(constraintToothB);
-
+	constraintToothB->setDbgDrawSize(btScalar(5.f));
 	// add walls
 	{
 		const char* curveWallFileName = "D:/dev/bullet3/testdata/curve_wall_thick.obj";
@@ -267,8 +269,8 @@ void FractureDemo::initPhysics()
 		}
 	}
 
-	m_dynamicsWorld->setGravity(btVector3{ -2.0, -1.0, 0.0 });
-
+	//m_dynamicsWorld->setGravity(btVector3{ -2.0, -1.0, 0.0 });
+	m_dynamicsWorld->setGravity(btVector3{ 0.0, 0.0, 0.0 });
 
 	fractureWorld->stepSimulation(1. / 60., 0);
 	fractureWorld->glueCallback();
