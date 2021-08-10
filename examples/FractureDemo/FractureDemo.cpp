@@ -66,6 +66,8 @@ public:
 	// helpers
 	btCompoundShape* LoadHACDOBJ(const char* objFileName);
 
+	btBvhTriangleMeshShape* LoadStaticConcaveObj(const char* objFileName);
+
 
 
 	virtual void stepSimulation(float deltaTime)
@@ -168,7 +170,7 @@ void FractureDemo::initPhysics()
 
 	// add tooth #1
 	{
-		const char* compoundFileName = "D:/dev/bullet3_build/examples/HelloWorld/Release/tooth_acd.obj";
+		const char* compoundFileName = "D:/dev/bullet3/testdata/tooth_acd.obj";
 		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
 
 		m_collisionShapes.push_back(compoundShape);
@@ -176,47 +178,37 @@ void FractureDemo::initPhysics()
 		compoundTransform.setIdentity();
 		compoundTransform.setOrigin(btVector3(-5, 0, 0));
 		btScalar angle = 3.14159 / 2;
-		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+		//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
 		btRigidBody* tooth = createRigidBody(static_cast<btScalar>(compoundShape->getNumChildShapes() * 20), compoundTransform, compoundShape);
 	}
 
 	// add tooth #2
 	{
-		const char* compoundFileName = "D:/dev/bullet3_build/examples/HelloWorld/Release/tooth_acd.obj";
+		const char* compoundFileName = "D:/dev/bullet3/testdata/tooth_acd.obj";
 		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
 
 		m_collisionShapes.push_back(compoundShape);
 		btTransform compoundTransform;
 		compoundTransform.setIdentity();
-		compoundTransform.setOrigin(btVector3(10, 0.5, 0));
+		compoundTransform.setOrigin(btVector3(-25.305878, 5.395162, 0));
 		btScalar angle = 3.14159 / 2;
-		compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+		//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
 		btRigidBody* tooth = createRigidBody(0.f, compoundTransform, compoundShape);
 	}
 
 	// add walls
+	{
+		const char* curveWallFileName = "D:/dev/bullet3/testdata/curve_wall_thick.obj";
+		auto* curveShape = LoadStaticConcaveObj(curveWallFileName);
 
-	//{
-	//	btCollisionShape* wallShape = new btBoxShape(btVector3(5, 5, 5));
-	//	///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
-	//	m_collisionShapes.push_back(wallShape);
-	//	btTransform groundTransform;
-	//	groundTransform.setIdentity();
-	//	groundTransform.setOrigin(btVector3(0, 20, -20));
-	//	//groundTransform.setRotation({ btVector3(1, 0, 0), 3.14159 / 2 });
-	//	createRigidBody(0.f, groundTransform, wallShape);
-	//}
-
-	//{
-	//	btCollisionShape* wallShape = new btBoxShape(btVector3(100, 20, 20));
-	//	///	btCollisionShape* groundShape = new btStaticPlaneShape(btVector3(0,1,0),0);
-	//	m_collisionShapes.push_back(wallShape);
-	//	btTransform groundTransform;
-	//	groundTransform.setIdentity();
-	//	groundTransform.setOrigin(btVector3(0, 40, 20));
-	//	//groundTransform.setRotation({ btVector3(1, 0, 0), 3.14159 / 2 });
-	//	createRigidBody(0.f, groundTransform, wallShape);
-	//}
+		m_collisionShapes.push_back(curveShape);
+		btTransform compoundTransform;
+		compoundTransform.setIdentity();
+		compoundTransform.setOrigin(btVector3(0, 0, 0));
+		btScalar angle = 3.14159 / 2;
+		//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+		btRigidBody* curveWall = createRigidBody(0.0f, compoundTransform, curveShape);
+	}
 
 
 	{
@@ -266,6 +258,9 @@ void FractureDemo::initPhysics()
 	fractureWorld->glueCallback();
 
 	m_guiHelper->autogenerateGraphicsObjects(m_dynamicsWorld);
+	m_guiHelper->getAppInterface()->setMouseWheelMultiplier(0.2);
+	m_guiHelper->getAppInterface()->setMouseMoveMultiplier(0.2);
+	
 }
 
 
@@ -491,6 +486,38 @@ btCompoundShape* FractureDemo::LoadHACDOBJ(const char* objFileName)
 		convHullShape->calculateLocalInertia(mass, localInertia);
 		ret->addChildShape(btTransform::getIdentity(), convHullShape);
 	}
+
+	return ret;
+}
+
+btBvhTriangleMeshShape* FractureDemo::LoadStaticConcaveObj(const char* objFileName)
+{
+	// use tinyobj to load fractures;
+	b3BulletDefaultFileIO fileIO;
+	std::vector<tinyobj::shape_t> shapes;
+	tinyobj::attrib_t attribute;
+	{
+		B3_PROFILE("tinyobj::LoadObj2");
+		std::string err = LoadFromCachedOrFromObj(attribute, shapes, objFileName, "", &fileIO);
+	}
+	btAssert(shapes.size() == 1 && "Multiple objects in OBJ file. use LoadHACDObj() instead.");
+	btTriangleMesh* meshInterface = new btTriangleMesh(true, false);
+
+	const auto& tris = shapes[0];
+	for (size_t i = 0; i < tris.mesh.indices.size() / 3; ++i)
+	{
+		const auto i0 = tris.mesh.indices[i * 3];
+		const auto i1 = tris.mesh.indices[i * 3 + 1];
+		const auto i2 = tris.mesh.indices[i * 3 + 2];
+		const float* v0 = &attribute.vertices[i0.vertex_index * 3];
+		const float* v1 = &attribute.vertices[i1.vertex_index * 3];
+		const float* v2 = &attribute.vertices[i2.vertex_index * 3];
+		meshInterface->addTriangle(
+			btVector3(v0[0], v0[1], v0[2]),
+			btVector3(v1[0], v1[1], v1[2]),
+			btVector3(v2[0], v2[1], v2[2]), false);
+	}
+	btBvhTriangleMeshShape* ret = new btBvhTriangleMeshShape(meshInterface, true, true);
 
 	return ret;
 }
