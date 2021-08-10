@@ -123,8 +123,6 @@ void FractureDemo::initPhysics()
 	btFractureDynamicsWorld* fractureWorld = new btFractureDynamicsWorld(m_dispatcher, m_broadphase, m_solver, m_collisionConfiguration);
 	m_dynamicsWorld = fractureWorld;
 
-	m_dynamicsWorld->setGravity(btVector3{ 2.0, -1.0, 0.0 });
-
 	m_guiHelper->createPhysicsDebugDrawer(m_dynamicsWorld);
 
 	//m_splitImpulse removes the penetration resolution from the applied impulse, otherwise objects might fracture due to deep penetrations.
@@ -168,33 +166,48 @@ void FractureDemo::initPhysics()
 
 	}
 
-	// add tooth #1
-	{
-		const char* compoundFileName = "D:/dev/bullet3/testdata/tooth_acd.obj";
-		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
+	// add tooth #A
+	const char* fileNameToothA = "D:/dev/bullet3/testdata/tooth_acd.obj";
+	btCompoundShape* shapeA = LoadHACDOBJ(fileNameToothA);
+	m_collisionShapes.push_back(shapeA);
+	btTransform transformToothA;
+	transformToothA.setIdentity();
+	transformToothA.setOrigin(btVector3(-25.305878, 5.395162, 0));
+	//btScalar angle = 3.14159 / 2;
+	//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+	btScalar massA = 0.0f;
+	btRigidBody* rbToothA = createRigidBody(massA, transformToothA, shapeA);
 
-		m_collisionShapes.push_back(compoundShape);
-		btTransform compoundTransform;
-		compoundTransform.setIdentity();
-		compoundTransform.setOrigin(btVector3(-5, 0, 0));
-		btScalar angle = 3.14159 / 2;
-		//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
-		btRigidBody* tooth = createRigidBody(static_cast<btScalar>(compoundShape->getNumChildShapes() * 20), compoundTransform, compoundShape);
-	}
+	// add tooth #B
+	const char* fileNameToothB = "D:/dev/bullet3/testdata/tooth_acd.obj";
+	btCompoundShape* shapeB = LoadHACDOBJ(fileNameToothB);
+	m_collisionShapes.push_back(shapeB);
+	btTransform transformToothB;
+	transformToothB.setIdentity();
+	transformToothB.setOrigin(btVector3(-5, 20, 0));
+	//btScalar angle = 3.14159 / 2;
+	//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
+	btScalar massB = static_cast<btScalar>(shapeB->getNumChildShapes() * 20);
+	btRigidBody* rbToothB = createRigidBody(massB, transformToothB, shapeB);
 
-	// add tooth #2
-	{
-		const char* compoundFileName = "D:/dev/bullet3/testdata/tooth_acd.obj";
-		btCompoundShape* compoundShape = LoadHACDOBJ(compoundFileName);
+	// add dof6 constraint for tooth B;
+	btGeneric6DofSpring2Constraint* constraintToothB = new btGeneric6DofSpring2Constraint(*rbToothB, btTransform::getIdentity());
 
-		m_collisionShapes.push_back(compoundShape);
-		btTransform compoundTransform;
-		compoundTransform.setIdentity();
-		compoundTransform.setOrigin(btVector3(-25.305878, 5.395162, 0));
-		btScalar angle = 3.14159 / 2;
-		//compoundTransform.setRotation(btQuaternion(btVector3(1, 0, 0), angle));
-		btRigidBody* tooth = createRigidBody(0.f, compoundTransform, compoundShape);
-	}
+	//// #1 slider constraint
+	btVector3 lowerSliderLimit = btVector3(-30, 0, 0);
+	btVector3 hiSliderLimit = btVector3(10, 0, 0);
+	constraintToothB->setLinearLowerLimit(lowerSliderLimit);
+	constraintToothB->setLinearUpperLimit(hiSliderLimit);
+	//constraintToothB->setAngularLowerLimit(btVector3(-SIMD_PI, 0, 0));
+	//constraintToothB->setAngularUpperLimit(btVector3(1.5, 0, 0));
+
+
+	//// #2 rotation constraint
+	constraintToothB->setAngularLowerLimit(btVector3(0, 0, -SIMD_PI));
+	constraintToothB->setAngularUpperLimit(btVector3(0, 0, SIMD_PI));
+
+
+	m_dynamicsWorld->addConstraint(constraintToothB);
 
 	// add walls
 	{
@@ -253,6 +266,9 @@ void FractureDemo::initPhysics()
 			m_dynamicsWorld->addRigidBody(body);
 		}
 	}
+
+	m_dynamicsWorld->setGravity(btVector3{ -2.0, -1.0, 0.0 });
+
 
 	fractureWorld->stepSimulation(1. / 60., 0);
 	fractureWorld->glueCallback();
